@@ -14,14 +14,14 @@ namespace AI_Distance
         internal enum team
         {
 
-            scav = 0,
-            usec = 1,
-            bear = 2,
-            boss = 3,
-            followers = 4,
-            pmcBot = 5,
-            exusec = 6,
-            others = 7
+            scav        = 0,
+            usec        = 1,
+            bear        = 2,
+            boss        = 3,
+            followers   = 4,
+            raiders     = 5,
+            exusec      = 6,
+            others      = 7
         };
 
         private void Start()
@@ -50,7 +50,7 @@ namespace AI_Distance
                 float distance = info.Item5;
                 float t = distance / Plugin.zoomSilder.Value; // 在指定范围内可以缩放 
                 t = Mathf.Clamp01(t);
-                int boxSize = (int)Mathf.Lerp(minBoxSize, maxBoxSize, t);
+                int boxSize = (int)Mathf.Lerp(minBoxSize, maxBoxSize, 1 - t); // t 或 1 - t，根据需求更改
 
                 // ----------------------------------------------------------------------------------
                 // viewport 原点在左下角，GUI 原点在左上角
@@ -73,11 +73,11 @@ namespace AI_Distance
                 }
                 else if (side == EPlayerSide.Usec)
                 {
-                    boxLetter += $"{AIDistancePatch.SetColor("Usec", Color.white)}\n";
+                    boxLetter += $"{AIDistancePatch.SetColor(Plugin.usecName.Value, Color.white)}\n";
                 }
                 else
                 {
-                    boxLetter += $"{AIDistancePatch.SetColor("Bear", Color.white)}\n";
+                    boxLetter += $"{AIDistancePatch.SetColor(Plugin.bearName.Value, Color.white)}\n";
                 }
 
                 boxLetter += "Teams: " + teamColors[team] + "\n" +
@@ -192,7 +192,7 @@ namespace AI_Distance
             }
             else if (roleType == WildSpawnType.pmcBot)
             {
-                return team.pmcBot;
+                return team.raiders;
             }
             else if (roleType == WildSpawnType.exUsec)
             {
@@ -347,8 +347,8 @@ namespace AI_Distance
         private static string[] teamColors = new string[]
         {
             $"{SetColor("Scav", Color.yellow)}",
-            $"{SetColor("Usec", new Color(255f, 1f, 255f))}",
-            $"{SetColor("Bear", new Color(129f, 0f, 243f))}",
+            $"{SetColor("Usec", Color.cyan)}",
+            $"{SetColor("Bear", new Color(129f,   0f, 243f))}",
             $"{SetColor("Boss", Color.red)}",
             $"{SetColor("Followers", Color.blue)}",
             $"{SetColor("Raiders", Color.green)}",

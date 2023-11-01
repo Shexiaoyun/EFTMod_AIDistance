@@ -16,6 +16,8 @@ namespace AI_Distance
         internal static ConfigEntry<float> alphaTransparent;
         internal static ConfigEntry<float> boxPosX;
         internal static ConfigEntry<float> boxPosY;
+        internal static ConfigEntry<string> usecName;
+        internal static ConfigEntry<string> bearName;
         internal static ConfigEntry<KeyCode> isEnable;
         private static GameObject Hook = new GameObject("AIDistance");
         private void Awake()
@@ -37,6 +39,13 @@ namespace AI_Distance
             boxPosY = Config.Bind("Values", "Y 偏移", 0f,
                 new ConfigDescription("Y 偏移的大小",
                 new AcceptableValueRange<float>(-50f, 50f)));
+            usecName = Config.Bind("Values", "Usec名字", "Chilidog",
+                new ConfigDescription("设定 Usec 显示的名字",
+                null));
+            bearName = Config.Bind("Values", "Bear名字", "Big Dick",
+                new ConfigDescription("设定 Bear 显示的名字",
+                null));
+
             isEnable = Config.Bind("KeyCode", "标记开启按键", KeyCode.L, "AI距离标识，启动！");
             Hook.AddComponent<AIDistancePatch>();
             DontDestroyOnLoad(Hook);
