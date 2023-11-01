@@ -320,95 +320,8 @@ namespace AI_Distance
         {
             style.richText = true;
             style.wordWrap = true;
-
-            Type extType = typeof(object);
-            Type[] types = typeof(Player).Assembly.GetTypes();
-            for (int i = 0; i < types.Length; i++)
-            {
-                Type classType = types[i];
-                MethodBase method;
-                if (null != (method = classType.GetMethod("IsFollower", BindingFlags.Static | BindingFlags.Public)))
-                {
-                    ParameterInfo[] parameters = method.GetParameters();
-                    if (parameters.Length == 1 && parameters[0].Name == "settings")
-                    {
-                        extType = classType;
-                    }
-                }
-                if (null != (method = classType.GetMethod("GetCorrectedNickname", BindingFlags.Static | BindingFlags.Public)))
-                {
-                    AIDistancePatch.GetCorrectedNickname = ((object obj) => (string)method.Invoke(classType, new object[]
-                    {
-                        obj
-                    }));
-                }
-            }
-            MethodInfo method_IsBoss = extType.GetMethod("IsBoss");
-            MethodInfo method_IsFollower = extType.GetMethod("IsFollower");
-            AIDistancePatch.IsBoss = ((object obj) => (bool)method_IsBoss.Invoke(extType, new object[]
-            {
-                obj
-            }));
-            AIDistancePatch.IsFollower = ((object obj) => (bool)method_IsFollower.Invoke(extType, new object[]
-            {
-                obj
-            }));
         }
 
-        public int MySqrt(int x)
-        {
-            if (x <= 1)
-            {
-                return x;
-            }
-            int i = 1;
-            int num = x;
-            while (i <= num)
-            {
-                int num2 = i + (num - i) / 2;
-                if (num2 == x / num2)
-                {
-                    return num2;
-                }
-                if (num2 < x / num2)
-                {
-                    i = num2 + 1;
-                }
-                else
-                {
-                    num = num2 - 1;
-                }
-            }
-            return num;
-        }
-
-        public static object SuperGet(object obj, string name)
-        {
-            Type type = obj.GetType();
-            Func<object, object> func;
-            if (!AIDistancePatch.cacheTypeProp.TryGetValue(new Tuple<Type, string>(type, name), out func))
-            {
-                FieldInfo fi = type.GetField(name, BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-                if (null != fi)
-                {
-                    if (fi.IsStatic)
-                    {
-                        func = ((object _) => fi.GetValue(type));
-                    }
-                    else
-                    {
-                        func = new Func<object, object>(fi.GetValue);
-                    }
-                }
-                PropertyInfo property = type.GetProperty(name, BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-                if (null != property)
-                {
-                    func = new Func<object, object>(property.GetValue);
-                }
-                AIDistancePatch.cacheTypeProp.Add(new Tuple<Type, string>(type, name), func);
-            }
-            return func(obj);
-        }
         // ------------------------------------------------------------------------------------------------
         public int num50;
 
@@ -427,15 +340,6 @@ namespace AI_Distance
         private static GUIStyle style = new GUIStyle();
 
         private static UnityEngine.Vector3 camPos;
-
-        private static Func<object, bool> IsBoss;
-
-        private static Func<object, bool> IsFollower;
-
-        private static Func<object, string> GetCorrectedNickname;
-
-        private static Dictionary<Tuple<Type, string>, Func<object, object>> cacheTypeProp =
-            new Dictionary<Tuple<Type, string>, Func<object, object>>();
 
         private static List<Tuple<WildSpawnType, team, EPlayerSide, UnityEngine.Vector3, float>> botInfos =
             new List<Tuple<WildSpawnType, team, EPlayerSide, UnityEngine.Vector3, float>>();
