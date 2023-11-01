@@ -6,10 +6,6 @@ using EFT;
 using BepInEx;
 using UnityEngine;
 using EFTApi;
-using JetBrains.Annotations;
-using System.Numerics;
-using UnityEngine.UIElements;
-using static EFT.ScenesPreset;
 
 namespace AI_Distance
 {
@@ -17,12 +13,15 @@ namespace AI_Distance
     {
         internal enum team
         {
+
             scav = 0,
-            boss = 1,
-            followers = 2,
-            pmc = 3,
-            exusec = 4,
-            others = 5
+            usec = 1,
+            bear = 2,
+            boss = 3,
+            followers = 4,
+            pmcBot = 5,
+            exusec = 6,
+            others = 7
         };
 
         private void Start()
@@ -34,24 +33,24 @@ namespace AI_Distance
 
         private void OnGUI()
         {
+            // 渲染 GUI
             int screenHeight = Screen.height, screenWidth = Screen.width;
-            //结合透视投影矩阵与 GUI 矩阵，将名字渲染到 bot 脚下
-            foreach (Tuple<WildSpawnType, team, UnityEngine.Vector3, float> info in botInfos)
+            foreach (Tuple<WildSpawnType, team, EPlayerSide, UnityEngine.Vector3, float> info in botInfos)
             {
-                UnityEngine.Vector3 screenPos = info.Item3;
+                UnityEngine.Vector3 screenPos = info.Item4;
                 // ----------------------------------------------------------------------------------
                 // clamp, 由于投影矩阵需要除以 -z，直接 clamp 会导致背对的 box 朝对角移动
-                if(screenPos.x > screenWidth || screenPos.x < 0 ||
+                if (screenPos.x > screenWidth || screenPos.x < 0 ||
                     screenPos.y > screenHeight || screenPos.y < 0)
                 {
                     screenPos = clamp(screenPos);
                 }
                 // ----------------------------------------------------------------------------------
                 // 画出 box, 并根据距离线性化 box 的大小
-                float distance = info.Item4;
+                float distance = info.Item5;
                 float t = distance / Plugin.zoomSilder.Value; // 在指定范围内可以缩放 
                 t = Mathf.Clamp01(t);
-                int boxSize = (int)Mathf.Lerp(minBoxSize, maxBoxSize, 1 - t);
+                int boxSize = (int)Mathf.Lerp(minBoxSize, maxBoxSize, t);
 
                 // ----------------------------------------------------------------------------------
                 // viewport 原点在左下角，GUI 原点在左上角
@@ -60,7 +59,31 @@ namespace AI_Distance
                 int GUIY = (int)((screenHeight - screenPos.y) + Plugin.boxPosY.Value);
                 GUIX = Mathf.Clamp(GUIX, 0, screenWidth);
                 GUIY = Mathf.Clamp(GUIY, 0, screenHeight - boxSize);
-                GUI.Box(new Rect(GUIX, GUIY, boxSize, boxSize), $"Load");
+
+                // ----------------------------------------------------------------------------------
+                // GUI 设置
+                int index = ((int)info.Item1), team = ((int)info.Item2);
+                EPlayerSide side = info.Item3;
+                style.fontSize = boxSize / 6;
+
+                string boxLetter = "Name: ";
+                if (side == EPlayerSide.Savage)
+                {
+                    boxLetter += $"{AIDistancePatch.SetColor(botNames[index], Color.white)}\n";
+                }
+                else if (side == EPlayerSide.Usec)
+                {
+                    boxLetter += $"{AIDistancePatch.SetColor("Usec", Color.white)}\n";
+                }
+                else
+                {
+                    boxLetter += $"{AIDistancePatch.SetColor("Bear", Color.white)}\n";
+                }
+
+                boxLetter += "Teams: " + teamColors[team] + "\n" +
+                    "Dis: " + $"{AIDistancePatch.SetColor(distance.ToString("#0.00"), Color.Lerp(Color.cyan, Color.red, 1 - t))}";
+
+                GUI.Box(new Rect(GUIX, GUIY, boxSize, boxSize), boxLetter, style);
             }
 
             string text = " Bots : ";
@@ -118,6 +141,7 @@ namespace AI_Distance
             return newPos;
         }
 
+        // 代码来自 AiDistance_26282 @jokesun
         public static string SetColor(string str, Color color)
         {
             return string.Concat(new string[]
@@ -130,16 +154,17 @@ namespace AI_Distance
             });
         }
 
-        internal static team BotRole(WildSpawnType roleType)
+        // 代码来自 AI-Marker @ATMod
+        private static team BotRole(WildSpawnType roleType)
         {
-            if(roleType == WildSpawnType.assault | 
-                roleType == WildSpawnType.marksman | 
-                roleType == WildSpawnType.assaultGroup | 
+            if (roleType == WildSpawnType.assault |
+                roleType == WildSpawnType.marksman |
+                roleType == WildSpawnType.assaultGroup |
                 roleType == WildSpawnType.gifter)
             {
                 return team.scav;
             }
-            else if(roleType == WildSpawnType.followerBully |
+            else if (roleType == WildSpawnType.followerBully |
                 roleType == WildSpawnType.followerKojaniy |
                 roleType == WildSpawnType.followerGluharAssault |
                 roleType == WildSpawnType.followerGluharSecurity |
@@ -151,7 +176,7 @@ namespace AI_Distance
             {
                 return team.followers;
             }
-            else if(roleType == WildSpawnType.bossBully |
+            else if (roleType == WildSpawnType.bossBully |
                     roleType == WildSpawnType.bossKilla |
                     roleType == WildSpawnType.bossKilla |
                     roleType == WildSpawnType.bossKojaniy |
@@ -165,11 +190,11 @@ namespace AI_Distance
             {
                 return team.boss;
             }
-            else if(roleType == WildSpawnType.pmcBot)
+            else if (roleType == WildSpawnType.pmcBot)
             {
-                return team.pmc;
+                return team.pmcBot;
             }
-            else if(roleType == WildSpawnType.exUsec)
+            else if (roleType == WildSpawnType.exUsec)
             {
                 return team.exusec;
             }
@@ -177,28 +202,43 @@ namespace AI_Distance
             {
                 return team.others;
             }
+
+        }
+
+        private Texture2D MakeTex(int width, int height, Color col)
+        {
+            Color[] pix = new Color[width * height];
+
+            for (int i = 0; i < pix.Length; i++)
+                pix[i] = col;
+
+            Texture2D result = new Texture2D(width, height);
+            result.SetPixels(pix);
+            result.Apply();
+
+            return result;
         }
 
         private void initBotList()
         {
             botInfos.Clear();
-            if (!EFTApi.EFTGlobal.GameWorld)
-            {
+            if (Input.GetKeyDown(Plugin.isEnable.Value))
+                isEnable = !isEnable;
+            if (!isEnable)
                 return;
-            }
+            if (!EFTApi.EFTGlobal.GameWorld)
+                return;
+
             GameWorld instance = EFTApi.EFTGlobal.GameWorld;
             if (null == instance)
-            {
                 return;
-            }
             if (instance.RegisteredPlayers.Count <= 1)
-            {
                 return;
-            }
             if (null == Camera.main)
-            {
                 return;
-            }
+
+            style.normal.background = MakeTex(1, 1,
+                new Color(0.5f, 0.5f, 0.5f, Plugin.alphaTransparent.Value));
             AIDistancePatch.camPos = Camera.main.transform.position;
             foreach (IPlayer bot in instance.RegisteredPlayers)
             {
@@ -211,7 +251,7 @@ namespace AI_Distance
                 UnityEngine.Vector3 delta =
                     bodyPos - AIDistancePatch.camPos;
                 float dot = UnityEngine.Vector3.Dot(Camera.main.transform.forward, delta);
-                if(dot < 0)
+                if (dot < 0)
                 {
                     UnityEngine.Vector3 projectedPos = AIDistancePatch.camPos + (delta -
                         Camera.main.transform.forward * dot * 1.01f);
@@ -221,15 +261,17 @@ namespace AI_Distance
                 {
                     newPos = Camera.main.WorldToScreenPoint(bodyPos);
                 }
-                team botRole = BotRole(bot.Profile.Info.Settings.Role);
+                EPlayerSide side = bot.Side;
+                team botRole = (side == EPlayerSide.Savage) ? (BotRole(bot.Profile.Info.Settings.Role)) :
+                    (side == EPlayerSide.Usec ? team.usec : team.bear);
                 float distance = UnityEngine.Vector3.Distance(bodyPos, camPos);
 
-                botInfos.Add(new Tuple<WildSpawnType, team, UnityEngine.Vector3, float>
-                    (bot.Profile.Info.Settings.Role, botRole, newPos, distance));
+                botInfos.Add(new Tuple<WildSpawnType, team, EPlayerSide, UnityEngine.Vector3, float>
+                    (bot.Profile.Info.Settings.Role, botRole, side, newPos, distance));
             }
 
         }
-            private void Cal()
+        private void Cal()
         {
             this.num50 = 0;
             this.num100 = 0;
@@ -275,41 +317,43 @@ namespace AI_Distance
         }
 
         private static void initMethods()
-		{
-            
-			Type extType = typeof(object);
-			Type[] types = typeof(Player).Assembly.GetTypes();
-			for (int i = 0; i < types.Length; i++)
-			{
-				Type classType = types[i];
-				MethodBase method;
-				if (null != (method = classType.GetMethod("IsFollower", BindingFlags.Static | BindingFlags.Public)))
-				{
-					ParameterInfo[] parameters = method.GetParameters();
-					if (parameters.Length == 1 && parameters[0].Name == "settings")
-					{
-						extType = classType;
-					}
-				}
-				if (null != (method = classType.GetMethod("GetCorrectedNickname", BindingFlags.Static | BindingFlags.Public)))
-				{
-					AIDistancePatch.GetCorrectedNickname = ((object obj) => (string)method.Invoke(classType, new object[]
-					{
-						obj
-					}));
-				}
-			}
-			MethodInfo method_IsBoss = extType.GetMethod("IsBoss");
-			MethodInfo method_IsFollower = extType.GetMethod("IsFollower");
-			AIDistancePatch.IsBoss = ((object obj) => (bool)method_IsBoss.Invoke(extType, new object[]
-			{
-				obj
-			}));
-			AIDistancePatch.IsFollower = ((object obj) => (bool)method_IsFollower.Invoke(extType, new object[]
-			{
-				obj
-			}));
-		}
+        {
+            style.richText = true;
+            style.wordWrap = true;
+
+            Type extType = typeof(object);
+            Type[] types = typeof(Player).Assembly.GetTypes();
+            for (int i = 0; i < types.Length; i++)
+            {
+                Type classType = types[i];
+                MethodBase method;
+                if (null != (method = classType.GetMethod("IsFollower", BindingFlags.Static | BindingFlags.Public)))
+                {
+                    ParameterInfo[] parameters = method.GetParameters();
+                    if (parameters.Length == 1 && parameters[0].Name == "settings")
+                    {
+                        extType = classType;
+                    }
+                }
+                if (null != (method = classType.GetMethod("GetCorrectedNickname", BindingFlags.Static | BindingFlags.Public)))
+                {
+                    AIDistancePatch.GetCorrectedNickname = ((object obj) => (string)method.Invoke(classType, new object[]
+                    {
+                        obj
+                    }));
+                }
+            }
+            MethodInfo method_IsBoss = extType.GetMethod("IsBoss");
+            MethodInfo method_IsFollower = extType.GetMethod("IsFollower");
+            AIDistancePatch.IsBoss = ((object obj) => (bool)method_IsBoss.Invoke(extType, new object[]
+            {
+                obj
+            }));
+            AIDistancePatch.IsFollower = ((object obj) => (bool)method_IsFollower.Invoke(extType, new object[]
+            {
+                obj
+            }));
+        }
 
         public int MySqrt(int x)
         {
@@ -374,9 +418,13 @@ namespace AI_Distance
 
         public float nearestAi;
 
+        private bool isEnable = false;
+
         private const int offsetUp = 0, offsetRight = 50, offsetDown = 50, offsetLeft = 0;
 
-        private const int minBoxSize = 35, maxBoxSize = 100;
+        private const int minBoxSize = 75, maxBoxSize = 135;
+
+        private static GUIStyle style = new GUIStyle();
 
         private static UnityEngine.Vector3 camPos;
 
@@ -389,46 +437,62 @@ namespace AI_Distance
         private static Dictionary<Tuple<Type, string>, Func<object, object>> cacheTypeProp =
             new Dictionary<Tuple<Type, string>, Func<object, object>>();
 
-        private static List<Tuple<WildSpawnType, team, UnityEngine.Vector3, float>> botInfos = 
-            new List<Tuple<WildSpawnType, team, UnityEngine.Vector3, float>>();
+        private static List<Tuple<WildSpawnType, team, EPlayerSide, UnityEngine.Vector3, float>> botInfos =
+            new List<Tuple<WildSpawnType, team, EPlayerSide, UnityEngine.Vector3, float>>();
 
-        private static string[] botNames = new string[37] {
-    "marksman",
-    "assault",
-    "bossTest",
-    "bossBully",
-    "followerTest",
-    "followerBully",
-    "bossKilla",
-    "bossKojaniy",
-    "followerKojaniy",
-    "pmcBot",
-    "cursedAssault",
-    "bossGluhar",
-    "followerGluharAssault",
-    "followerGluharSecurity",
-    "followerGluharScout",
-    "followerGluharSnipe",
-    "followerSanitar",
-    "bossSanitar",
-    "test",
-    "assaultGroup",
-    "sectantWarrior",
-    "sectantPriest",
-    "bossTagilla",
-    "followerTagilla",
-    "exUsec",
-    "gifter",
-    "bossKnight",
-    "followerBigPipe",
-    "followerBirdEye",
-    "bossZryachiy",
-    "followerZryachiy",
-    "bossBoar",
-    "followerBoar",
-    "arenaFighter",
-    "arenaFighterEvent",
-    "bossBoarSniper",
-    "crazyAssaultEvent"};
+        private static string[] teamColors = new string[]
+        {
+            $"{SetColor("Scav", Color.yellow)}",
+            $"{SetColor("Usec", new Color(255f, 1f, 255f))}",
+            $"{SetColor("Bear", new Color(129f, 0f, 243f))}",
+            $"{SetColor("Boss", Color.red)}",
+            $"{SetColor("Followers", Color.blue)}",
+            $"{SetColor("Raiders", Color.green)}",
+            $"{SetColor("Exusec", Color.black)}",
+            $"{SetColor("Others", Color.white)}"
+
+        };
+
+        private static string[] botNames = new string[]
+        {
+            "Marksman",
+            "Assault",
+            "BossTest",
+            "BossBully",
+            "FollowerTest",
+            "FollowerBully",
+            "BossKilla",
+            "BossKojaniy",
+            "FollowerKojaniy",
+            "PmcBot",
+            "CursedAssault",
+            "BossGluhar",
+            "FollowerGluharAssault",
+            "FollowerGluharSecurity",
+            "FollowerGluharScout",
+            "FollowerGluharSnipe",
+            "FollowerSanitar",
+            "BossSanitar",
+            "Test",
+            "AssaultGroup",
+            "SectantWarrior",
+            "SectantPriest",
+            "BossTagilla",
+            "FollowerTagilla",
+            "ExUsec",
+            "Gifter",
+            "BossKnight",
+            "FollowerBigPipe",
+            "FollowerBirdEye",
+            "BossZryachiy",
+            "FollowerZryachiy",
+            "Who?",
+            "BossBoar",
+            "FollowerBoar",
+            "ArenaFighter",
+            "ArenaFighterEvent",
+            "BossboarSniper",
+            "CrazyAssaultEvent"
+        };
     }
 }
