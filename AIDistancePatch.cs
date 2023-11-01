@@ -36,7 +36,7 @@ namespace AI_Distance
         {
             int screenHeight = Screen.height, screenWidth = Screen.width;
             //结合透视投影矩阵与 GUI 矩阵，将名字渲染到 bot 脚下
-            foreach (Tuple<WildSpawnType, team, UnityEngine.Vector3> info in botInfos)
+            foreach (Tuple<WildSpawnType, team, UnityEngine.Vector3, float> info in botInfos)
             {
                 UnityEngine.Vector3 screenPos = info.Item3;
                 // ----------------------------------------------------------------------------------
@@ -48,7 +48,7 @@ namespace AI_Distance
                 }
                 // ----------------------------------------------------------------------------------
                 // 画出 box, 并根据距离线性化 box 的大小
-                float distance = screenPos.z;
+                float distance = info.Item4;
                 float t = distance / Plugin.zoomSilder.Value; // 在指定范围内可以缩放 
                 t = Mathf.Clamp01(t);
                 int boxSize = (int)Mathf.Lerp(minBoxSize, maxBoxSize, 1 - t);
@@ -205,11 +205,11 @@ namespace AI_Distance
                 if (bot.IsYourPlayer) continue;
                 // 将 camera 后面的坐标投影到前面
                 // bot.MainParts[BodyPartType.head].Position + bot.Transform.TransformPoint( 
-                // bot.Transform.localPosition); // LocalPos，是局部坐标吗？
-                UnityEngine.Vector3 newPos;
-                UnityEngine.Vector3 oriPos = 
+                // bot.Transform.localPosition); // LocalPos 与 worldPos 一致?(奇怪)
+                UnityEngine.Vector3 newPos; // the screen space
+                UnityEngine.Vector3 bodyPos = bot.MainParts[BodyPartType.body].Position; // world space
                 UnityEngine.Vector3 delta =
-                    oriPos - AIDistancePatch.camPos;
+                    bodyPos - AIDistancePatch.camPos;
                 float dot = UnityEngine.Vector3.Dot(Camera.main.transform.forward, delta);
                 if(dot < 0)
                 {
@@ -219,11 +219,13 @@ namespace AI_Distance
                 }
                 else
                 {
-                    newPos = Camera.main.WorldToScreenPoint(oriPos);
+                    newPos = Camera.main.WorldToScreenPoint(bodyPos);
                 }
                 team botRole = BotRole(bot.Profile.Info.Settings.Role);
-                botInfos.Add(new Tuple<WildSpawnType, team, UnityEngine.Vector3>
-                    (bot.Profile.Info.Settings.Role, botRole, newPos));
+                float distance = UnityEngine.Vector3.Distance(bodyPos, camPos);
+
+                botInfos.Add(new Tuple<WildSpawnType, team, UnityEngine.Vector3, float>
+                    (bot.Profile.Info.Settings.Role, botRole, newPos, distance));
             }
 
         }
@@ -251,12 +253,12 @@ namespace AI_Distance
                 return;
             }
             UnityEngine.Vector3 position = Camera.main.transform.position;
-            this.nearestAi = int.MaxValue;
+            this.nearestAi = float.MaxValue;
             foreach (IPlayer bot in instance.RegisteredPlayers)
             {
                 if (bot.IsYourPlayer) continue;
                 numAll++;
-                int distance = this.MySqrt((int)(bot.Transform.position - position).sqrMagnitude);
+                float distance = UnityEngine.Vector3.Distance(bot.Transform.position, position);
                 if (distance < this.nearestAi)
                 {
                     this.nearestAi = distance;
@@ -370,13 +372,11 @@ namespace AI_Distance
 
         public int numAll;
 
-        public int nearestAi;
-
-        private const float playerHeight = 1.80f;
+        public float nearestAi;
 
         private const int offsetUp = 0, offsetRight = 50, offsetDown = 50, offsetLeft = 0;
 
-        private const int minBoxSize = 50, maxBoxSize = 90;
+        private const int minBoxSize = 35, maxBoxSize = 100;
 
         private static UnityEngine.Vector3 camPos;
 
@@ -389,8 +389,8 @@ namespace AI_Distance
         private static Dictionary<Tuple<Type, string>, Func<object, object>> cacheTypeProp =
             new Dictionary<Tuple<Type, string>, Func<object, object>>();
 
-        private static List<Tuple<WildSpawnType, team, UnityEngine.Vector3>> botInfos = 
-            new List<Tuple<WildSpawnType, team, UnityEngine.Vector3>>();
+        private static List<Tuple<WildSpawnType, team, UnityEngine.Vector3, float>> botInfos = 
+            new List<Tuple<WildSpawnType, team, UnityEngine.Vector3, float>>();
 
         private static string[] botNames = new string[37] {
     "marksman",
