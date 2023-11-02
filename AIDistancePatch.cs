@@ -13,7 +13,6 @@ namespace AI_Distance
     {
         internal enum team
         {
-
             scav        = 0,
             usec        = 1,
             bear        = 2,
@@ -67,24 +66,10 @@ namespace AI_Distance
                 EPlayerSide side = info.Item3;
                 style.fontSize = boxSize / 6;
 
-                string boxLetter = "Name: ";
-                if (side == EPlayerSide.Savage)
-                {
-                    boxLetter += $"{AIDistancePatch.SetColor(botNames[index], Color.white)}\n";
-                }
-                else if (side == EPlayerSide.Usec)
-                {
-                    boxLetter += $"{AIDistancePatch.SetColor(Plugin.usecName.Value, Color.white)}\n";
-                }
-                else
-                {
-                    boxLetter += $"{AIDistancePatch.SetColor(Plugin.bearName.Value, Color.white)}\n";
-                }
+                string boxLetter = "Dis:" + 
+                    $"{AIDistancePatch.SetColor(distance.ToString("#0.00"), teamColors[team])}";
 
-                boxLetter += "Teams: " + teamColors[team] + "\n" +
-                    "Dis: " + $"{AIDistancePatch.SetColor(distance.ToString("#0.00"), Color.Lerp(Color.cyan, Color.red, 1 - t))}";
-
-                GUI.Box(new Rect(GUIX, GUIY, boxSize, boxSize), boxLetter, style);
+                GUI.Box(new Rect(GUIX, GUIY, boxSize, boxSize / 6), boxLetter, style);
             }
 
             string text = " Bots : ";
@@ -248,7 +233,7 @@ namespace AI_Distance
                 // bot.MainParts[BodyPartType.head].Position + bot.Transform.TransformPoint( 
                 // bot.Transform.localPosition); // LocalPos 与 worldPos 一致?(奇怪)
                 UnityEngine.Vector3 newPos; // the screen space
-                UnityEngine.Vector3 bodyPos = bot.MainParts[BodyPartType.body].Position; // world space
+                UnityEngine.Vector3 bodyPos = bot.Transform.position; // world space
                 UnityEngine.Vector3 delta =
                     bodyPos - AIDistancePatch.camPos;
                 float dot = UnityEngine.Vector3.Dot(Camera.main.transform.forward, delta);
@@ -343,59 +328,17 @@ namespace AI_Distance
         private static List<Tuple<WildSpawnType, team, EPlayerSide, UnityEngine.Vector3, float>> botInfos =
             new List<Tuple<WildSpawnType, team, EPlayerSide, UnityEngine.Vector3, float>>();
 
-        private static string[] teamColors = new string[]
+        private static Color[] teamColors = new Color[]
         {
-            $"{SetColor("Scav", Color.yellow)}",
-            $"{SetColor("Usec", Color.cyan)}",
-            $"{SetColor("Bear", new Color(129f,   0f, 243f))}",
-            $"{SetColor("Boss", Color.red)}",
-            $"{SetColor("Followers", Color.blue)}",
-            $"{SetColor("Raiders", Color.green)}",
-            $"{SetColor("Exusec", Color.black)}",
-            $"{SetColor("Others", Color.white)}"
-
+            Color.yellow,                   // Scav
+            Color.cyan,                     // Usec
+            new Color(129f,   0f, 243f),    // Bear
+            Color.red,                      // Boss
+            Color.blue,                    // Followers
+            Color.green,                    // Raiders
+            Color.black,                    // Exusec
+            Color.white                     // Others
         };
 
-        private static string[] botNames = new string[]
-        {
-            "Marksman",
-            "Assault",
-            "BossTest",
-            "BossBully",
-            "FollowerTest",
-            "FollowerBully",
-            "BossKilla",
-            "BossKojaniy",
-            "FollowerKojaniy",
-            "PmcBot",
-            "CursedAssault",
-            "BossGluhar",
-            "FollowerGluharAssault",
-            "FollowerGluharSecurity",
-            "FollowerGluharScout",
-            "FollowerGluharSnipe",
-            "FollowerSanitar",
-            "BossSanitar",
-            "Test",
-            "AssaultGroup",
-            "SectantWarrior",
-            "SectantPriest",
-            "BossTagilla",
-            "FollowerTagilla",
-            "ExUsec",
-            "Gifter",
-            "BossKnight",
-            "FollowerBigPipe",
-            "FollowerBirdEye",
-            "BossZryachiy",
-            "FollowerZryachiy",
-            "Who?",
-            "BossBoar",
-            "FollowerBoar",
-            "ArenaFighter",
-            "ArenaFighterEvent",
-            "BossboarSniper",
-            "CrazyAssaultEvent"
-        };
     }
 }
