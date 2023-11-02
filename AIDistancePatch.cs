@@ -50,7 +50,8 @@ namespace AI_Distance
                 float distance = info.Item5;
                 float t = distance / Plugin.zoomSilder.Value; // 在指定范围内可以缩放 
                 t = Mathf.Clamp01(t);
-                int boxSize = (int)Mathf.Lerp(minBoxSize, maxBoxSize, 1 - t); // t 或 1 - t，根据需求更改
+                int boxSize = (int)Mathf.Lerp(Plugin.minBoxSize.Value, 
+                    Plugin.maxBoxSize.Value, 1 - t); // t 或 1 - t，根据需求更改
 
                 // ----------------------------------------------------------------------------------
                 // viewport 原点在左下角，GUI 原点在左上角
@@ -334,8 +335,6 @@ namespace AI_Distance
         private bool isEnable = false;
 
         private const int offsetUp = 0, offsetRight = 50, offsetDown = 50, offsetLeft = 0;
-
-        private const int minBoxSize = 75, maxBoxSize = 135;
 
         private static GUIStyle style = new GUIStyle();
 

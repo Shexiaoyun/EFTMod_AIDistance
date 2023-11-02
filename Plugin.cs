@@ -16,6 +16,8 @@ namespace AI_Distance
         internal static ConfigEntry<float> alphaTransparent;
         internal static ConfigEntry<float> boxPosX;
         internal static ConfigEntry<float> boxPosY;
+        internal static ConfigEntry<int> minBoxSize;
+        internal static ConfigEntry<int> maxBoxSize;
         internal static ConfigEntry<string> usecName;
         internal static ConfigEntry<string> bearName;
         internal static ConfigEntry<KeyCode> isEnable;
@@ -39,6 +41,12 @@ namespace AI_Distance
             boxPosY = Config.Bind("Values", "Y 偏移", 0f,
                 new ConfigDescription("Y 偏移的大小",
                 new AcceptableValueRange<float>(-50f, 50f)));
+            minBoxSize = Config.Bind("Values", "最小标记边长", 75,
+                new ConfigDescription("标记缩放过程中的最小边长",
+                new AcceptableValueRange<int>(25, 150)));
+            maxBoxSize = Config.Bind("Values", "最大标记边长", 135,
+                new ConfigDescription("标记缩放过程中的最大边长",
+                new AcceptableValueRange<int>(85, 270)));
             usecName = Config.Bind("Values", "Usec名字", "Chilidog",
                 new ConfigDescription("设定 Usec 显示的名字",
                 null));
