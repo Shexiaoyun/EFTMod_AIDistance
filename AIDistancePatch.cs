@@ -58,7 +58,7 @@ namespace AI_Distance
                 int GUIX = (int)(screenPos.x - boxSize / 2 + Plugin.boxPosX.Value);
                 int GUIY = (int)((screenHeight - screenPos.y) + Plugin.boxPosY.Value);
                 GUIX = Mathf.Clamp(GUIX, 0, screenWidth);
-                GUIY = Mathf.Clamp(GUIY, 0, screenHeight - boxSize);
+                GUIY = Mathf.Clamp(GUIY, 0, screenHeight - boxSize / 6);
 
                 // ----------------------------------------------------------------------------------
                 // GUI 设置
